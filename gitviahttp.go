@@ -16,7 +16,8 @@ import (
 	"time"
 )
 
-type gitHandler struct {
+// GitHandler struct
+type GitHandler struct {
 	w    http.ResponseWriter
 	r    *http.Request
 	rpc  string
@@ -48,7 +49,7 @@ func updateServerInfo(dir string) []byte {
 	return gitCommand(dir, "update-server-info")
 }
 
-func (gh *gitHandler) sendFile(contentType string) {
+func (gh *GitHandler) sendFile(contentType string) {
 	reqFile := path.Join(gh.dir, gh.file)
 	fi, err := os.Stat(reqFile)
 	if os.IsNotExist(err) {
@@ -74,13 +75,13 @@ func packetFlush() []byte {
 	return []byte("0000")
 }
 
-func (gh *gitHandler) hdrNocache() {
+func (gh *GitHandler) hdrNocache() {
 	gh.w.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
 	gh.w.Header().Set("Pragma", "no-cache")
 	gh.w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
 }
 
-func (gh *gitHandler) hdrCacheForever() {
+func (gh *GitHandler) hdrCacheForever() {
 	now := time.Now().Unix()
 	expires := now + 31536000
 	gh.w.Header().Set("Date", fmt.Sprintf("%d", now))
@@ -88,15 +89,15 @@ func (gh *gitHandler) hdrCacheForever() {
 	gh.w.Header().Set("Cache-Control", "public, max-age=31536000")
 }
 
-func serviceUploadPack(gh gitHandler) {
+func serviceUploadPack(gh GitHandler) {
 	postServiceRPC(gh, "upload-pack")
 }
 
-func serviceReceivePack(gh gitHandler) {
+func serviceReceivePack(gh GitHandler) {
 	postServiceRPC(gh, "receive-pack")
 }
 
-func postServiceRPC(gh gitHandler, rpc string) {
+func postServiceRPC(gh GitHandler, rpc string) {
 	if gh.r.Header.Get("Content-Type") != fmt.Sprintf("application/x-git-%s-request", rpc) {
 		gh.w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -131,13 +132,13 @@ func postServiceRPC(gh gitHandler, rpc string) {
 	}
 }
 
-func getInfoRefs(gh gitHandler) {
+func getInfoRefs(gh GitHandler) {
 	gh.hdrNocache()
 
 	rpc := getServiceType(gh.r)
 
 	if rpc != "upload-pack" && rpc != "receive-pack" {
-		gh := gitHandler{}
+		gh := GitHandler{}
 		updateServerInfo(gh.dir)
 		gh.sendFile("text/plain; charset=utf-8")
 		return
@@ -151,27 +152,27 @@ func getInfoRefs(gh gitHandler) {
 	gh.w.Write(refs)
 }
 
-func getTextFile(gh gitHandler) {
+func getTextFile(gh GitHandler) {
 	gh.hdrNocache()
 	gh.sendFile("text/plain")
 }
 
-func getInfoPacks(gh gitHandler) {
+func getInfoPacks(gh GitHandler) {
 	gh.hdrCacheForever()
 	gh.sendFile("text/plain; charset=utf-8")
 }
 
-func getLooseObject(gh gitHandler) {
+func getLooseObject(gh GitHandler) {
 	gh.hdrCacheForever()
 	gh.sendFile("application/x-git-loose-object")
 }
 
-func getPackFile(gh gitHandler) {
+func getPackFile(gh GitHandler) {
 	gh.hdrCacheForever()
 	gh.sendFile("application/x-git-packed-objects")
 }
 
-func getIdxFile(gh gitHandler) {
+func getIdxFile(gh GitHandler) {
 	gh.hdrCacheForever()
 	gh.sendFile("application/x-git-packed-objects-toc")
 }
@@ -179,7 +180,7 @@ func getIdxFile(gh gitHandler) {
 var routes = []struct {
 	rxp     *regexp.Regexp
 	method  string
-	handler func(gitHandler)
+	handler func(GitHandler)
 }{
 	{regexp.MustCompile("(.*?)/git-upload-pack$"), "POST", serviceUploadPack},
 	{regexp.MustCompile("(.*?)/git-receive-pack$"), "POST", serviceReceivePack},
@@ -202,7 +203,7 @@ func writeHdr(w http.ResponseWriter, status int, text string) {
 	}
 }
 
-func (gh *gitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
+func (gh *GitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, route := range routes {
 		reqPath := strings.ToLower(r.URL.Path)
 		routeMatch := route.rxp.FindStringSubmatch(reqPath)
@@ -222,7 +223,7 @@ func (gh *gitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 
 		file := strings.TrimPrefix(reqPath, routeMatch[1]+"/")
 
-		route.handler(gitHandler{
+		route.handler(GitHandler{
 			w:    w,
 			r:    r,
 			dir:  gh.dir,
@@ -248,7 +249,7 @@ func main() {
 	flag.Parse()
 
 	if isServerMode {
-		gh := gitHandler{dir: "."}
+		gh := GitHandler{dir: repoDir}
 		http.HandleFunc("/", gh.gitHTTP)
 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 	} else {
