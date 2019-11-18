@@ -193,6 +193,14 @@ var routes = []struct {
 	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.idx$"), "GET", getIdxFile},
 }
 
+func writeHdr(w http.ResponseWriter, status int, text string) {
+	w.WriteHeader(status)
+	_, err := w.Write([]byte(text))
+	if err != nil {
+		fmt.Printf("Error: %v", err)
+	}
+}
+
 func (gh *gitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, route := range routes {
 		reqPath := strings.ToLower(r.URL.Path)
@@ -204,17 +212,9 @@ func (gh *gitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if route.method != r.Method {
 			if r.Proto == "HTTP/1.1" {
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				_, err := w.Write([]byte("Method Not Allowed"))
-				if err != nil {
-					fmt.Printf("Error: %v", err)
-				}
+				writeHdr(w, http.StatusMethodNotAllowed, "Method not allowed")
 			} else {
-				w.WriteHeader(http.StatusBadRequest)
-				_, err := w.Write([]byte("Bad Request"))
-				if err != nil {
-					fmt.Printf("Error: %v", err)
-				}
+				writeHdr(w, http.StatusBadRequest, "Bad request")
 			}
 			return
 		}
@@ -229,7 +229,8 @@ func (gh *gitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	return
+
+	writeHdr(w, http.StatusNotFound, "Not found")
 }
 
 func main() {
