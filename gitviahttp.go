@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -87,31 +88,14 @@ func (gh *gitHandler) hdrCacheForever() {
 }
 
 func serviceUploadPack(gh gitHandler) {
-	serviceRPC(gh, "upload-pack")
+	postServiceRPC(gh, "upload-pack")
 }
 
 func serviceReceivePack(gh gitHandler) {
-	serviceRPC(gh, "receive-pack")
+	postServiceRPC(gh, "receive-pack")
 }
 
-func serviceRPC(gh gitHandler, rpc string) {
-	// vars := r.URL.Query()
-
-	// rpcKey, ok := vars["rpc"]
-	// if !ok || len(rpcKey[0]) < 1 {
-	// 	log.Println("rpc key is missing or not valid")
-	// 	return
-	// }
-
-	// rpc := rpcKey[0]
-
-	// if rpc != "upload-pack" && rpc != "receive-pack" {
-	// 	gh := gitHandler{}
-	// 	updateServerInfo(gh.dir)
-	// 	gh.sendFile("text/plain; charset=utf-8")
-	// 	return
-	// }
-
+func postServiceRPC(gh gitHandler, rpc string) {
 	if gh.r.Header.Get("Content-Type") != fmt.Sprintf("application/x-git-%s-request", rpc) {
 		gh.w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -148,6 +132,23 @@ func serviceRPC(gh gitHandler, rpc string) {
 
 func getInfoRefs(gh gitHandler) {
 	gh.hdrNocache()
+
+	vars := gh.r.URL.Query()
+
+	rpcKey, ok := vars["rpc"]
+	if !ok || len(rpcKey[0]) < 1 {
+		log.Println("rpc key is missing or not valid")
+		return
+	}
+
+	rpc := rpcKey[0]
+
+	if rpc != "upload-pack" && rpc != "receive-pack" {
+		gh := gitHandler{}
+		updateServerInfo(gh.dir)
+		gh.sendFile("text/plain; charset=utf-8")
+		return
+	}
 }
 
 func getTextFile(gh gitHandler) {
@@ -176,7 +177,7 @@ func getIdxFile(gh gitHandler) {
 }
 
 var routes = []struct {
-	reg     *regexp.Regexp
+	rxp     *regexp.Regexp
 	method  string
 	handler func(gitHandler)
 }{
@@ -196,8 +197,9 @@ var routes = []struct {
 func gitHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, route := range routes {
 		reqPath := strings.ToLower(r.URL.Path)
-		router := route.reg.FindStringSubmatch(reqPath)
-		if router == nil {
+		routeMatch := route.rxp.FindStringSubmatch(reqPath)
+
+		if routeMatch == nil {
 			continue
 		}
 
@@ -218,13 +220,8 @@ func gitHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		file := strings.TrimPrefix(reqPath, router[1]+"/")
-		dir, err := getGitRepoPath(m[1])
-		if err != nil {
-			log.Warn("HTTP.getGitRepoPath: %v", err)
-			c.NotFound()
-			return
-		}
+		file := strings.TrimPrefix(reqPath, routeMatch[1]+"/")
+		dir := "."
 
 		route.handler(gitHandler{
 			w:    w,
@@ -235,9 +232,10 @@ func gitHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c.NotFound()
+	// c.NotFound()
 }
 
 func main() {
-	fmt.Println("Hello, World!")
+	http.HandleFunc("/", gitHTTP)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
