@@ -202,7 +202,7 @@ func writeHdr(w http.ResponseWriter, status int, text string) {
 }
 
 // Context ...
-func Context(w http.ResponseWriter, r *http.Request, dir string) {
+func Context(w http.ResponseWriter, r *http.Request, gh GitHandler) {
 	for _, route := range routes {
 		reqPath := strings.ToLower(r.URL.Path)
 		routeMatch := route.rxp.FindStringSubmatch(reqPath)
@@ -225,7 +225,7 @@ func Context(w http.ResponseWriter, r *http.Request, dir string) {
 		route.handler(GitHandler{
 			w:    w,
 			r:    r,
-			dir:  dir,
+			dir:  gh.dir,
 			file: file,
 		})
 		return
