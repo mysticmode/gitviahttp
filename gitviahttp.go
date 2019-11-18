@@ -1,11 +1,9 @@
-package main
+package gitviahttp
 
 import (
 	"bytes"
 	"compress/gzip"
-	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -203,7 +201,8 @@ func writeHdr(w http.ResponseWriter, status int, text string) {
 	}
 }
 
-func (gh *GitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
+// Context ...
+func Context(w http.ResponseWriter, r *http.Request, dir string) {
 	for _, route := range routes {
 		reqPath := strings.ToLower(r.URL.Path)
 		routeMatch := route.rxp.FindStringSubmatch(reqPath)
@@ -226,7 +225,7 @@ func (gh *GitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 		route.handler(GitHandler{
 			w:    w,
 			r:    r,
-			dir:  gh.dir,
+			dir:  dir,
 			file: file,
 		})
 		return
@@ -235,24 +234,24 @@ func (gh *GitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 	writeHdr(w, http.StatusNotFound, "Not found")
 }
 
-func main() {
-	var (
-		isServerMode bool
-		port         string
-		repoDir      string
-	)
+// func main() {
+// 	var (
+// 		isServerMode bool
+// 		port         string
+// 		repoDir      string
+// 	)
 
-	flag.BoolVar(&isServerMode, "server", false, "Specify true for the server mode else it will run in CLI mode")
-	flag.StringVar(&port, "port", "8080", "Specifying the port where gitviahttp should run")
-	flag.StringVar(&repoDir, "directory", ".", "Specify the directory where your repositories are located")
+// 	flag.BoolVar(&isServerMode, "server", false, "Specify true for the server mode else it will run in CLI mode")
+// 	flag.StringVar(&port, "port", "8080", "Specifying the port where gitviahttp should run")
+// 	flag.StringVar(&repoDir, "directory", ".", "Specify the directory where your repositories are located")
 
-	flag.Parse()
+// 	flag.Parse()
 
-	if isServerMode {
-		gh := GitHandler{dir: repoDir}
-		http.HandleFunc("/", gh.gitHTTP)
-		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
-	} else {
-		fmt.Println("Hello, from CLI :)")
-	}
-}
+// 	if isServerMode {
+// 		gh := GitHandler{dir: repoDir}
+// 		http.HandleFunc("/", gh.gitHTTP)
+// 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+// 	} else {
+// 		fmt.Println("Hello, from CLI :)")
+// 	}
+// }
