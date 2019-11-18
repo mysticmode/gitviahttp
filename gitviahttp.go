@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -234,7 +235,23 @@ func (gh *gitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	gh := gitHandler{dir: "."}
-	http.HandleFunc("/", gh.gitHTTP)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	var (
+		isServerMode bool
+		port         string
+		repoDir      string
+	)
+
+	flag.BoolVar(&isServerMode, "server", false, "Specify true for the server mode else it will run in CLI mode")
+	flag.StringVar(&port, "port", "8080", "Specifying the port where gitviahttp should run")
+	flag.StringVar(&repoDir, "directory", ".", "Specify the directory where your repositories are located")
+
+	flag.Parse()
+
+	if isServerMode {
+		gh := gitHandler{dir: "."}
+		http.HandleFunc("/", gh.gitHTTP)
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+	} else {
+		fmt.Println("Hello, from CLI :)")
+	}
 }
