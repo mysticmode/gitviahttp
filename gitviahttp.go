@@ -133,15 +133,7 @@ func postServiceRPC(gh gitHandler, rpc string) {
 func getInfoRefs(gh gitHandler) {
 	gh.hdrNocache()
 
-	vars := gh.r.URL.Query()
-
-	rpcKey, ok := vars["rpc"]
-	if !ok || len(rpcKey[0]) < 1 {
-		log.Println("rpc key is missing or not valid")
-		return
-	}
-
-	rpc := rpcKey[0]
+	rpc := getServiceType(gh.r)
 
 	if rpc != "upload-pack" && rpc != "receive-pack" {
 		gh := gitHandler{}
@@ -149,6 +141,13 @@ func getInfoRefs(gh gitHandler) {
 		gh.sendFile("text/plain; charset=utf-8")
 		return
 	}
+
+	refs := gitCommand(gh.dir, rpc, "--stateless-rpc", "--advertise-refs", ".")
+	gh.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", rpc))
+	gh.w.WriteHeader(http.StatusOK)
+	gh.w.Write(packetWrite("# service=git-" + rpc + "\n"))
+	gh.w.Write([]byte("0000"))
+	gh.w.Write(refs)
 }
 
 func getTextFile(gh gitHandler) {
