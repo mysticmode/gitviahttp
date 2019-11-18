@@ -193,7 +193,7 @@ var routes = []struct {
 	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.idx$"), "GET", getIdxFile},
 }
 
-func gitHTTP(w http.ResponseWriter, r *http.Request) {
+func (gh *gitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, route := range routes {
 		reqPath := strings.ToLower(r.URL.Path)
 		routeMatch := route.rxp.FindStringSubmatch(reqPath)
@@ -220,12 +220,11 @@ func gitHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		file := strings.TrimPrefix(reqPath, routeMatch[1]+"/")
-		dir := "."
 
 		route.handler(gitHandler{
 			w:    w,
 			r:    r,
-			dir:  dir,
+			dir:  gh.dir,
 			file: file,
 		})
 		return
@@ -235,6 +234,7 @@ func gitHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", gitHTTP)
+	gh := gitHandler{dir: "."}
+	http.HandleFunc("/", gh.gitHTTP)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
