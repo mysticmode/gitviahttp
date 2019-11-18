@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -45,18 +46,18 @@ func updateServerInfo(dir string) []byte {
 	return gitCommand(dir, "update-server-info")
 }
 
-func (ghrs *gitHandler) sendFile(contentType string) {
-	reqFile := path.Join(ghrs.dir, ghrs.file)
+func (gh *gitHandler) sendFile(contentType string) {
+	reqFile := path.Join(gh.dir, gh.file)
 	fi, err := os.Stat(reqFile)
 	if os.IsNotExist(err) {
-		ghrs.w.WriteHeader(http.StatusNotFound)
+		gh.w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	ghrs.w.Header().Set("Content-Type", contentType)
-	ghrs.w.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
-	ghrs.w.Header().Set("Last-Modified", fi.ModTime().Format(http.TimeFormat))
-	http.ServeFile(ghrs.w, ghrs.r, reqFile)
+	gh.w.Header().Set("Content-Type", contentType)
+	gh.w.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
+	gh.w.Header().Set("Last-Modified", fi.ModTime().Format(http.TimeFormat))
+	http.ServeFile(gh.w, gh.r, reqFile)
 }
 
 func packetWrite(str string) []byte {
@@ -71,18 +72,26 @@ func packetFlush() []byte {
 	return []byte("0000")
 }
 
-func hdrNocache(w http.ResponseWriter) {
-	w.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+func (gh *gitHandler) hdrNocache() {
+	gh.w.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
+	gh.w.Header().Set("Pragma", "no-cache")
+	gh.w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
 }
 
-func hdrCacheForever(w http.ResponseWriter) {
+func (gh *gitHandler) hdrCacheForever() {
 	now := time.Now().Unix()
 	expires := now + 31536000
-	w.Header().Set("Date", fmt.Sprintf("%d", now))
-	w.Header().Set("Expires", fmt.Sprintf("%d", expires))
-	w.Header().Set("Cache-Control", "public, max-age=31536000")
+	gh.w.Header().Set("Date", fmt.Sprintf("%d", now))
+	gh.w.Header().Set("Expires", fmt.Sprintf("%d", expires))
+	gh.w.Header().Set("Cache-Control", "public, max-age=31536000")
+}
+
+func serviceUploadPack(gh gitHandler) {
+	serviceRPC(gh, "upload-pack")
+}
+
+func serviceReceivePack(gh gitHandler) {
+	serviceRPC(gh, "receive-pack")
 }
 
 func serviceRPC(gh gitHandler, rpc string) {
@@ -97,9 +106,9 @@ func serviceRPC(gh gitHandler, rpc string) {
 	// rpc := rpcKey[0]
 
 	// if rpc != "upload-pack" && rpc != "receive-pack" {
-	// 	ghrs := gitHandler{}
-	// 	updateServerInfo(ghrs.dir)
-	// 	ghrs.sendFile("text/plain; charset=utf-8")
+	// 	gh := gitHandler{}
+	// 	updateServerInfo(gh.dir)
+	// 	gh.sendFile("text/plain; charset=utf-8")
 	// 	return
 	// }
 
@@ -135,6 +144,98 @@ func serviceRPC(gh gitHandler, rpc string) {
 		fmt.Println(fmt.Sprintf("Fail to serve RPC(%s): %v - %s", rpc, err, stderr.String()))
 		return
 	}
+}
+
+func getInfoRefs(gh gitHandler) {
+	gh.hdrNocache()
+}
+
+func getTextFile(gh gitHandler) {
+	gh.hdrNocache()
+	gh.sendFile("text/plain")
+}
+
+func getInfoPacks(gh gitHandler) {
+	gh.hdrCacheForever()
+	gh.sendFile("text/plain; charset=utf-8")
+}
+
+func getLooseObject(gh gitHandler) {
+	gh.hdrCacheForever()
+	gh.sendFile("application/x-git-loose-object")
+}
+
+func getPackFile(gh gitHandler) {
+	gh.hdrCacheForever()
+	gh.sendFile("application/x-git-packed-objects")
+}
+
+func getIdxFile(gh gitHandler) {
+	gh.hdrCacheForever()
+	gh.sendFile("application/x-git-packed-objects-toc")
+}
+
+var routes = []struct {
+	reg     *regexp.Regexp
+	method  string
+	handler func(gitHandler)
+}{
+	{regexp.MustCompile("(.*?)/git-upload-pack$"), "POST", serviceUploadPack},
+	{regexp.MustCompile("(.*?)/git-receive-pack$"), "POST", serviceReceivePack},
+	{regexp.MustCompile("(.*?)/info/refs$"), "GET", getInfoRefs},
+	{regexp.MustCompile("(.*?)/HEAD$"), "GET", getTextFile},
+	{regexp.MustCompile("(.*?)/objects/info/alternates$"), "GET", getTextFile},
+	{regexp.MustCompile("(.*?)/objects/info/http-alternates$"), "GET", getTextFile},
+	{regexp.MustCompile("(.*?)/objects/info/packs$"), "GET", getInfoPacks},
+	{regexp.MustCompile("(.*?)/objects/info/[^/]*$"), "GET", getTextFile},
+	{regexp.MustCompile("(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$"), "GET", getLooseObject},
+	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.pack$"), "GET", getPackFile},
+	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.idx$"), "GET", getIdxFile},
+}
+
+func gitHTTP(w http.ResponseWriter, r *http.Request) {
+	for _, route := range routes {
+		reqPath := strings.ToLower(r.URL.Path)
+		router := route.reg.FindStringSubmatch(reqPath)
+		if router == nil {
+			continue
+		}
+
+		if route.method != r.Method {
+			if r.Proto == "HTTP/1.1" {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				_, err := w.Write([]byte("Method Not Allowed"))
+				if err != nil {
+					fmt.Printf("Error: %v", err)
+				}
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				_, err := w.Write([]byte("Bad Request"))
+				if err != nil {
+					fmt.Printf("Error: %v", err)
+				}
+			}
+			return
+		}
+
+		file := strings.TrimPrefix(reqPath, router[1]+"/")
+		dir, err := getGitRepoPath(m[1])
+		if err != nil {
+			log.Warn("HTTP.getGitRepoPath: %v", err)
+			c.NotFound()
+			return
+		}
+
+		route.handler(gitHandler{
+			w:    w,
+			r:    r,
+			dir:  dir,
+			file: file,
+		})
+		return
+	}
+
+	c.NotFound()
 }
 
 func main() {
