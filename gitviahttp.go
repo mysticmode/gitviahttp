@@ -229,8 +229,7 @@ func (gh *gitHandler) gitHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	// c.NotFound()
+	return
 }
 
 func main() {
