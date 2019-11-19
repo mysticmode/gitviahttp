@@ -12,8 +12,8 @@ gitviahttp
       |
       -- oh-lovely.git
 ```
-
-For CLI mode on Linux
+### CLI mode
+On Linux
 ```
 git clone https://github.com/mysticmode/gitviahttp
 cd gitviahttp
@@ -22,7 +22,7 @@ go build ./cmd/gitviahttp
 ./gitviahttp -port=1937 -directory=.
 ```
 
-For CLI mode on Windows. You can use Powershell for example as shown below
+On Windows
 ```
 git clone https://github.com/mysticmode/gitviahttp
 cd .\gitviahttp\
@@ -38,7 +38,7 @@ Cloning into 'oh-lovely'...
 warning: You appear to have cloned an empty repository.
 ```
 
-Now if you have repositories directory somewhere else, specify the absolute path of that directory as shown below
+If you have **repositories directory somewhere else**, specify the absolute path of that directory as shown below
 
 For example on Linux, you have the repository at `/home/git/repositories`
 ```
