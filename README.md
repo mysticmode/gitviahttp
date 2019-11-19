@@ -17,6 +17,7 @@ On Linux
 ```
 git clone https://github.com/mysticmode/gitviahttp
 cd gitviahttp
+go get -d ./...
 go build ./cmd/gitviahttp
 ./gitviahttp -port=1937 -directory=.
 ```
@@ -25,6 +26,7 @@ On Windows
 ```
 git clone https://github.com/mysticmode/gitviahttp
 cd .\gitviahttp\
+go get -d ./...
 go build .\cmd\gitviahttp
 .\gitviahttp.exe -port=1937 -directory=.
 ```
