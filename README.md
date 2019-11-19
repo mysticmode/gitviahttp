@@ -24,7 +24,7 @@ go build ./cmd/gitviahttp
 On Windows
 ```
 go get github.com/mysticmode/gitviahttp
-cd $Env:GOPATH/src/github.com/mysticmode/gitviahttp
+cd $Env:GOPATH\src\github.com\mysticmode\gitviahttp
 go build .\cmd\gitviahttp
 .\gitviahttp.exe -port=1937 -directory=.
 ```
