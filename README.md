@@ -19,7 +19,7 @@ git clone https://github.com/mysticmode/gitviahttp
 cd gitviahttp
 go get
 go build ./cmd/gitviahttp
-./gitviahttp -port=1937 -directory=./repositories
+./gitviahttp -port=1937 -directory=.
 ```
 
 For CLI mode on Windows. You can use Powershell for example as shown below
@@ -28,7 +28,7 @@ git clone https://github.com/mysticmode/gitviahttp
 cd .\gitviahttp\
 go get
 go build .\cmd\gitviahttp
-.\gitviahttp.exe -port=1937 -directory=.\repositories\
+.\gitviahttp.exe -port=1937 -directory=.
 ```
 
 Now clone the repository
