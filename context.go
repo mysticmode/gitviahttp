@@ -258,7 +258,7 @@ func Context(w http.ResponseWriter, r *http.Request, dir string) {
 			return
 		}
 
-		repoDir := dir + routeMatch[1]
+		var repoDir string
 
 		if dir == "." || dir == "" {
 			projectRootDir := getProjectRootDir()
