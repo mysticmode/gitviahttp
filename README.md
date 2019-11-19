@@ -59,7 +59,7 @@ package main
 
 import (
     "github.com/gorilla/mux"
-    gitviahttp "gopkg.in/mysticmode/gitviahttp.v1"
+    "gopkg.in/mysticmode/gitviahttp.v1"
 )
 
 func main() {
