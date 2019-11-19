@@ -51,3 +51,26 @@ For example on Windows, you have the repository at `D:\Git\repositories`
 ```
 
 And then clone the repository.
+
+### Library mode
+I'm using [Gorilla Mux](https://www.gorillatoolkit.org/pkg/mux) router below to show an example of how gitviahttp will work as a library.
+```
+package main
+
+import (
+    "github.com/gorilla/mux"
+    gitviahttp "gopkg.in/mysticmode/gitviahttp.v1"
+)
+
+func main() {
+    m := mux.NewRouter()
+   
+    repoDir := "/home/git/repositories"
+   
+    m.PathPrefix("/+{username}/{reponame[\\d\\w-_\\.]+\\.git$}").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+       // Do your authentication here if you want
+       // and then call gitviahttp.Context()
+       gitviahttp.Context(w, r, repoDir)
+    }).Methods("GET", "POST")
+}
+```
