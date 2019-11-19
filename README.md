@@ -15,18 +15,16 @@ gitviahttp
 ### CLI mode
 On Linux
 ```
-git clone https://github.com/mysticmode/gitviahttp
-cd gitviahttp
-go get -d ./...
+go get github.com/mysticmode/gitviahttp
+cd $GOPATH/src/github.com/mysticmode/gitviahttp/
 go build ./cmd/gitviahttp
 ./gitviahttp -port=1937 -directory=.
 ```
 
 On Windows
 ```
-git clone https://github.com/mysticmode/gitviahttp
-cd .\gitviahttp\
-go get -d ./...
+go get github.com/mysticmode/gitviahttp
+cd $Env:GOPATH/src/github.com/mysticmode/gitviahttp
 go build .\cmd\gitviahttp
 .\gitviahttp.exe -port=1937 -directory=.
 ```
