@@ -231,6 +231,14 @@ func writeHdr(w http.ResponseWriter, status int, text string) {
 	}
 }
 
+func getProjectRootDir() string {
+	projectRootDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		fmt.Printf("Error: %v", err)
+	}
+	return projectRootDir
+}
+
 // Context ...
 func Context(w http.ResponseWriter, r *http.Request, dir string) {
 	for _, route := range routes {
@@ -252,16 +260,22 @@ func Context(w http.ResponseWriter, r *http.Request, dir string) {
 
 		repoDir := dir + routeMatch[1]
 
-		if dir == "./repositories" || dir == "." || dir == "" {
-			projectRootDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-			if err != nil {
-				fmt.Printf("Error: %v", err)
-			}
+		if dir == "." || dir == "" {
+			projectRootDir := getProjectRootDir()
 
 			if runtime.GOOS == "windows" {
 				repoDir = filepath.Join(projectRootDir, windowsPathSeparator+"repositories"+windowsPathSeparator+routeMatch[1])
 			} else {
 				repoDir = filepath.Join(projectRootDir, linuxPathSeparator+"repositories"+linuxPathSeparator+routeMatch[1])
+			}
+		} else if dir == "./repositories" {
+			fmt.Println("coming")
+			projectRootDir := getProjectRootDir()
+
+			if runtime.GOOS == "windows" {
+				repoDir = filepath.Join(projectRootDir, windowsPathSeparator+routeMatch[1])
+			} else {
+				repoDir = filepath.Join(projectRootDir, linuxPathSeparator+routeMatch[1])
 			}
 		} else {
 			if runtime.GOOS == "windows" {
