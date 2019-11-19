@@ -28,7 +28,7 @@ git clone https://github.com/mysticmode/gitviahttp
 cd .\gitviahttp\
 go get
 go build .\cmd\gitviahttp
-.\gitviahttp.exe -directory=.\repositories\
+.\gitviahttp.exe -port=1937 -directory=.\repositories\
 ```
 
 Now clone the repository
