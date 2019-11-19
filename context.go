@@ -1,4 +1,4 @@
-/* 
+/*
 
 MIT License
 
@@ -40,8 +40,7 @@ import (
 	"time"
 )
 
-// GitHandler struct
-type GitHandler struct {
+type gitHandler struct {
 	w    http.ResponseWriter
 	r    *http.Request
 	rpc  string
@@ -73,7 +72,7 @@ func updateServerInfo(dir string) []byte {
 	return gitCommand(dir, "update-server-info")
 }
 
-func (gh *GitHandler) sendFile(contentType string) {
+func (gh *gitHandler) sendFile(contentType string) {
 	reqFile := path.Join(gh.dir, gh.file)
 	fi, err := os.Stat(reqFile)
 	if os.IsNotExist(err) {
@@ -99,13 +98,13 @@ func packetFlush() []byte {
 	return []byte("0000")
 }
 
-func (gh *GitHandler) hdrNocache() {
+func (gh *gitHandler) hdrNocache() {
 	gh.w.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
 	gh.w.Header().Set("Pragma", "no-cache")
 	gh.w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
 }
 
-func (gh *GitHandler) hdrCacheForever() {
+func (gh *gitHandler) hdrCacheForever() {
 	now := time.Now().Unix()
 	expires := now + 31536000
 	gh.w.Header().Set("Date", fmt.Sprintf("%d", now))
@@ -113,15 +112,15 @@ func (gh *GitHandler) hdrCacheForever() {
 	gh.w.Header().Set("Cache-Control", "public, max-age=31536000")
 }
 
-func serviceUploadPack(gh GitHandler) {
+func serviceUploadPack(gh gitHandler) {
 	postServiceRPC(gh, "upload-pack")
 }
 
-func serviceReceivePack(gh GitHandler) {
+func serviceReceivePack(gh gitHandler) {
 	postServiceRPC(gh, "receive-pack")
 }
 
-func postServiceRPC(gh GitHandler, rpc string) {
+func postServiceRPC(gh gitHandler, rpc string) {
 	if gh.r.Header.Get("Content-Type") != fmt.Sprintf("application/x-git-%s-request", rpc) {
 		gh.w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -156,13 +155,13 @@ func postServiceRPC(gh GitHandler, rpc string) {
 	}
 }
 
-func getInfoRefs(gh GitHandler) {
+func getInfoRefs(gh gitHandler) {
 	gh.hdrNocache()
 
 	rpc := getServiceType(gh.r)
 
 	if rpc != "upload-pack" && rpc != "receive-pack" {
-		gh := GitHandler{}
+		gh := gitHandler{}
 		updateServerInfo(gh.dir)
 		gh.sendFile("text/plain; charset=utf-8")
 		return
@@ -176,27 +175,27 @@ func getInfoRefs(gh GitHandler) {
 	gh.w.Write(refs)
 }
 
-func getTextFile(gh GitHandler) {
+func getTextFile(gh gitHandler) {
 	gh.hdrNocache()
 	gh.sendFile("text/plain")
 }
 
-func getInfoPacks(gh GitHandler) {
+func getInfoPacks(gh gitHandler) {
 	gh.hdrCacheForever()
 	gh.sendFile("text/plain; charset=utf-8")
 }
 
-func getLooseObject(gh GitHandler) {
+func getLooseObject(gh gitHandler) {
 	gh.hdrCacheForever()
 	gh.sendFile("application/x-git-loose-object")
 }
 
-func getPackFile(gh GitHandler) {
+func getPackFile(gh gitHandler) {
 	gh.hdrCacheForever()
 	gh.sendFile("application/x-git-packed-objects")
 }
 
-func getIdxFile(gh GitHandler) {
+func getIdxFile(gh gitHandler) {
 	gh.hdrCacheForever()
 	gh.sendFile("application/x-git-packed-objects-toc")
 }
@@ -204,7 +203,7 @@ func getIdxFile(gh GitHandler) {
 var routes = []struct {
 	rxp     *regexp.Regexp
 	method  string
-	handler func(GitHandler)
+	handler func(gitHandler)
 }{
 	{regexp.MustCompile("(.*?)/git-upload-pack$"), "POST", serviceUploadPack},
 	{regexp.MustCompile("(.*?)/git-receive-pack$"), "POST", serviceReceivePack},
@@ -228,7 +227,7 @@ func writeHdr(w http.ResponseWriter, status int, text string) {
 }
 
 // Context ...
-func Context(w http.ResponseWriter, r *http.Request, gh GitHandler) {
+func Context(w http.ResponseWriter, r *http.Request, dir string) {
 	for _, route := range routes {
 		reqPath := strings.ToLower(r.URL.Path)
 		routeMatch := route.rxp.FindStringSubmatch(reqPath)
@@ -248,10 +247,10 @@ func Context(w http.ResponseWriter, r *http.Request, gh GitHandler) {
 
 		file := strings.TrimPrefix(reqPath, routeMatch[1]+"/")
 
-		route.handler(GitHandler{
+		route.handler(gitHandler{
 			w:    w,
 			r:    r,
-			dir:  gh.dir,
+			dir:  dir,
 			file: file,
 		})
 		return
@@ -259,25 +258,3 @@ func Context(w http.ResponseWriter, r *http.Request, gh GitHandler) {
 
 	writeHdr(w, http.StatusNotFound, "Not found")
 }
-
-// func main() {
-// 	var (
-// 		isServerMode bool
-// 		port         string
-// 		repoDir      string
-// 	)
-
-// 	flag.BoolVar(&isServerMode, "server", false, "Specify true for the server mode else it will run in CLI mode")
-// 	flag.StringVar(&port, "port", "8080", "Specifying the port where gitviahttp should run")
-// 	flag.StringVar(&repoDir, "directory", ".", "Specify the directory where your repositories are located")
-
-// 	flag.Parse()
-
-// 	if isServerMode {
-// 		gh := GitHandler{dir: repoDir}
-// 		http.HandleFunc("/", gh.gitHTTP)
-// 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
-// 	} else {
-// 		fmt.Println("Hello, from CLI :)")
-// 	}
-// }
