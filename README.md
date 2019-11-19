@@ -2,7 +2,7 @@
 Git HTTP backend in Go. Available in both CLI and library flavors.
 
 ## Installation
-Example folder structure for the above installation
+Example folder structure for the below installation
 ```
 gitviahttp
 |
