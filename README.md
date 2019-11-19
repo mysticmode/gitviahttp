@@ -1,7 +1,7 @@
 # gitviahttp
 Git HTTP backend in Go. Available in both CLI and library flavors.
 
-## Installation
+## Installation & Usage
 Example folder structure for the below installation
 ```
 gitviahttp
