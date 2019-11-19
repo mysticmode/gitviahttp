@@ -10,7 +10,7 @@ gitviahttp
    |
    -- mysticmode
       |
-      -- ohlovely.git
+      -- oh-lovely.git
 ```
 
 For CLI mode on Linux
@@ -33,7 +33,7 @@ go build .\cmd\gitviahttp
 
 Now clone the repository
 ```
-git clone http://localhost:1937/mysticmode/ohlovely.git
-Cloning into 'ohlovely'...
+git clone http://localhost:1937/mysticmode/oh-lovely.git
+Cloning into 'oh-lovely'...
 warning: You appear to have cloned an empty repository.
 ```
