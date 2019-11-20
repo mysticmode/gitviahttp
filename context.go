@@ -36,14 +36,10 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
 )
-
-const windowsPathSeparator string = "\\"
-const linuxPathSeparator string = "/"
 
 type gitHandler struct {
 	w    http.ResponseWriter
@@ -259,30 +255,14 @@ func Context(w http.ResponseWriter, r *http.Request, dir string) {
 		}
 
 		var repoDir string
+		projectRootDir := getProjectRootDir()
 
 		if dir == "." || dir == "" {
-			projectRootDir := getProjectRootDir()
-
-			if runtime.GOOS == "windows" {
-				repoDir = filepath.Join(projectRootDir, windowsPathSeparator+"repositories"+windowsPathSeparator+routeMatch[1])
-			} else {
-				repoDir = filepath.Join(projectRootDir, linuxPathSeparator+"repositories"+linuxPathSeparator+routeMatch[1])
-			}
+			repoDir = filepath.Join(projectRootDir, "repositories", routeMatch[1])
 		} else if dir == "./repositories" {
-			fmt.Println("coming")
-			projectRootDir := getProjectRootDir()
-
-			if runtime.GOOS == "windows" {
-				repoDir = filepath.Join(projectRootDir, windowsPathSeparator+routeMatch[1])
-			} else {
-				repoDir = filepath.Join(projectRootDir, linuxPathSeparator+routeMatch[1])
-			}
+			repoDir = filepath.Join(projectRootDir, routeMatch[1])
 		} else {
-			if runtime.GOOS == "windows" {
-				repoDir = filepath.Join(dir, windowsPathSeparator+routeMatch[1])
-			} else {
-				repoDir = filepath.Join(dir, linuxPathSeparator+routeMatch[1])
-			}
+			repoDir = filepath.Join(dir, routeMatch[1])
 		}
 
 		file := strings.TrimPrefix(reqPath, routeMatch[1]+"/")
