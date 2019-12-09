@@ -1,4 +1,4 @@
-# gitviahttp
+# gitviahttp [![Go Report Card](https://goreportcard.com/badge/github.com/almarasoftware/gitviahttp)](https://goreportcard.com/report/github.com/almarasoftware/gitviahttp)
 Git HTTP backend in Go. Available in both CLI and library flavors.
 
 ## Installation & Usage
